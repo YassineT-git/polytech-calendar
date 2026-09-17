@@ -1,0 +1,40 @@
+name: Mise à jour EDT Polytech
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Générer le calendrier
+        run: python generate_ics.py
+
+      - name: Sauvegarder les modifications
+        run: |
+          git config user.name "Polytech Calendar Bot"
+          git config user.email "polytech-calendar@users.noreply.github.com"
+
+          git add docs/edt.ics
+
+          if git diff --cached --quiet; then
+            echo "Aucune modification"
+          else
+            git commit -m "Mise à jour de l'emploi du temps"
+            git push
+          fi
