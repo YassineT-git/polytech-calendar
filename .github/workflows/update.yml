@@ -1,4 +1,4 @@
-name: Mise à jour EDT Polytech
+name: Mise à jour EDT Polytech APP3
 
 on:
   workflow_dispatch:
@@ -6,8 +6,20 @@ on:
   schedule:
     - cron: "*/30 * * * *"
 
+  push:
+    branches:
+      - main
+    paths:
+      - "generate_ics.py"
+      - "docs/index.html"
+      - ".github/workflows/update.yml"
+
 permissions:
   contents: write
+
+concurrency:
+  group: polytech-calendar-update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -22,19 +34,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Générer le calendrier
+      - name: Générer tous les calendriers APP3
         run: python generate_ics.py
 
-      - name: Sauvegarder les modifications
+      - name: Sauvegarder les calendriers modifiés
         run: |
           git config user.name "Polytech Calendar Bot"
           git config user.email "polytech-calendar@users.noreply.github.com"
 
-          git add docs/edt.ics
+          git add docs/calendars docs/edt.ics
 
           if git diff --cached --quiet; then
-            echo "Aucune modification"
+            echo "Aucune modification de l'emploi du temps"
           else
-            git commit -m "Mise à jour de l'emploi du temps"
+            git commit -m "Mise à jour des calendriers APP3"
             git push
           fi

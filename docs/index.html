@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Calendrier APP3 — Polytech Paris-Saclay</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: light dark;
+      --bg: #f5f7f8;
+      --panel: rgba(255,255,255,.92);
+      --text: #152029;
+      --muted: #62707c;
+      --border: #dce3e7;
+      --accent: #087f5b;
+      --accent-hover: #066f4f;
+      --secondary: #e9eff2;
+      --secondary-text: #20303b;
+      --shadow: 0 22px 60px rgba(26, 46, 58, .12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1115;
+        --panel: rgba(22,28,33,.95);
+        --text: #edf3f6;
+        --muted: #9cabb5;
+        --border: #303a42;
+        --accent: #36c995;
+        --accent-hover: #4bd6a5;
+        --secondary: #263139;
+        --secondary-text: #edf3f6;
+        --shadow: 0 22px 60px rgba(0, 0, 0, .35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(8,127,91,.12), transparent 32rem),
+        var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      width: min(760px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 64px 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: .78rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      line-height: 1.04;
+      letter-spacing: -.04em;
+    }
+
+    .lead {
+      color: var(--muted);
+      max-width: 60ch;
+      line-height: 1.6;
+      margin: 18px 0 30px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 620px) {
+      main { padding: 36px 0; }
+      .grid { grid-template-columns: 1fr; }
+      .card { padding: 18px; border-radius: 18px; }
+    }
+
+    label {
+      display: block;
+      font-weight: 750;
+      margin-bottom: 7px;
+    }
+
+    select, .url-box {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 13px 14px;
+      font: inherit;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      margin: 24px 0 10px;
+    }
+
+    .url-box {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: .82rem;
+      overflow-wrap: anywhere;
+      line-height: 1.45;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 620px) {
+      .actions { grid-template-columns: 1fr; }
+    }
+
+    button, .button {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: transform .08s ease, background .15s ease;
+    }
+
+    button:active, .button:active { transform: translateY(1px); }
+    .primary { background: var(--accent); color: #fff; }
+    .primary:hover { background: var(--accent-hover); }
+    .secondary { background: var(--secondary); color: var(--secondary-text); }
+
+    .note {
+      margin-top: 22px;
+      padding: 15px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: .92rem;
+    }
+
+    .note strong { color: var(--text); }
+    .small { font-size: .82rem; color: var(--muted); margin-top: 12px; }
+    .status { min-height: 1.3em; color: var(--accent); font-weight: 700; margin: 10px 0 0; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Polytech Paris-Saclay</p>
+  <h1>Calendrier APP3</h1>
+  <p class="lead">
+    Choisis ta spécialité et ton groupe. Le lien généré est un abonnement ICS :
+    les changements publiés dans l'emploi du temps seront récupérés automatiquement
+    par ton application de calendrier.
+  </p>
+
+  <section class="card">
+    <div class="grid">
+      <div>
+        <label for="specialty">Spécialité</label>
+        <select id="specialty">
+          <option value="elec">Électronique</option>
+          <option value="info" selected>Informatique</option>
+          <option value="mate">Matériaux</option>
+          <option value="phot">Photonique</option>
+        </select>
+      </div>
+      <div>
+        <label for="group">Groupe</label>
+        <select id="group">
+          <option value="gra">Groupe A</option>
+          <option value="grb" selected>Groupe B</option>
+          <option value="grc">Groupe C</option>
+        </select>
+      </div>
+    </div>
+
+    <h2 class="section-title">Ton lien d'abonnement</h2>
+    <div id="ics-url" class="url-box" aria-live="polite"></div>
+
+    <div class="actions">
+      <a id="apple" class="button primary" href="#"> S'abonner sur Apple</a>
+      <button id="copy" class="secondary" type="button">Copier le lien ICS</button>
+      <a class="button secondary" href="https://calendar.google.com/calendar/" target="_blank" rel="noopener">Ouvrir Google Agenda</a>
+      <button id="google-help" class="secondary" type="button">Comment l'ajouter à Google ?</button>
+    </div>
+
+    <p id="status" class="status" role="status"></p>
+
+    <div class="note">
+      <strong>Semaines entreprise :</strong> lorsqu'une semaine contient au maximum
+      8 h de cours pour ton profil, elle est automatiquement complétée par
+      <strong>Entreprise, du lundi au vendredi de 9 h à 17 h 30</strong>.
+      Les quelques événements Polytech éventuellement présents restent visibles en parallèle.
+    </div>
+
+    <div class="note" id="google-instructions" hidden>
+      <strong>Google Agenda :</strong> copie le lien ICS ci-dessus, puis sur ordinateur ouvre
+      Google Agenda → <strong>Autres agendas</strong> → <strong>+</strong> →
+      <strong>À partir de l'URL</strong>, colle le lien et valide.
+    </div>
+
+    <p class="small">
+      Important : pour conserver les mises à jour automatiques, utilise l'abonnement par URL.
+      N'importe pas simplement le fichier <code>.ics</code> comme un fichier local.
+    </p>
+  </section>
+</main>
+
+<script>
+  const specialty = document.getElementById('specialty');
+  const group = document.getElementById('group');
+  const urlBox = document.getElementById('ics-url');
+  const apple = document.getElementById('apple');
+  const copyButton = document.getElementById('copy');
+  const status = document.getElementById('status');
+  const googleHelp = document.getElementById('google-help');
+  const googleInstructions = document.getElementById('google-instructions');
+
+  function currentIcsUrl() {
+    const base = new URL('./calendars/', window.location.href);
+    return new URL(`${specialty.value}-${group.value}.ics`, base).href;
+  }
+
+  function update() {
+    const url = currentIcsUrl();
+    urlBox.textContent = url;
+    apple.href = url.replace(/^https?:\/\//i, 'webcal://');
+    status.textContent = '';
+  }
+
+  async function copyUrl() {
+    const url = currentIcsUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      status.textContent = 'Lien ICS copié.';
+    } catch (_) {
+      const input = document.createElement('textarea');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      input.remove();
+      status.textContent = 'Lien ICS copié.';
+    }
+  }
+
+  specialty.addEventListener('change', update);
+  group.addEventListener('change', update);
+  copyButton.addEventListener('click', copyUrl);
+  googleHelp.addEventListener('click', () => {
+    googleInstructions.hidden = !googleInstructions.hidden;
+  });
+
+  update();
+</script>
+</body>
+</html>
