@@ -49,18 +49,34 @@ Le workflow `.github/workflows/update.yml` :
 - tourne toutes les 30 minutes ;
 - peut être lancé manuellement depuis l'onglet **Actions** ;
 - se lance aussi après une modification du générateur ou de la page d'accueil ;
-- ne commit que si le contenu des calendriers a réellement changé.
+- vérifie le générateur avec les tests hors réseau ;
+- ne commit que si le contenu des calendriers a réellement changé ;
+- publie explicitement `docs/` sur GitHub Pages après une génération réussie.
+
+Les erreurs réseau transitoires sont réessayées trois fois (pauses de 2 puis 4 secondes). Trois semaines consécutives en erreur interrompent la collecte. Une seule semaine manquante ou une réponse invalide annule toute la génération pour éviter la disparition de cours dans les abonnements. Un résultat explicite `courses: []` reste une semaine vide valide.
+
+Une panne durable PoPsEDT reste un échec visible : les calendriers déjà publiés sont conservés, mais peuvent être anciens. Le workflow ne peut pas réparer le serveur distant.
 
 ## GitHub Pages
 
 Configurer :
 
-- Source : `Deploy from a branch`
-- Branche : `main`
-- Dossier : `/docs`
+- Dans **Settings → Pages → Build and deployment → Source**, choisir **GitHub Actions**.
+- Conserver le workflow fourni ; aucune création de workflow supplémentaire n’est nécessaire.
+- Si une protection de branche interdit les commits du bot, autoriser ce workflow selon les règles du dépôt.
+
+Ce réglage remplace `Deploy from a branch` : les commits effectués avec `GITHUB_TOKEN` ne déclenchent pas automatiquement la construction Pages. Le job `deploy` publie directement les fichiers générés. Les URL existantes restent les mêmes.
 
 Le lien général est ensuite :
 
 ```text
-https://TON-PSEUDO.github.io/polytech-calendar/
+https://YassineT-git.github.io/polytech-calendar/
 ```
+
+## Tests et validation
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+Voir `DEPLOIEMENT.md` pour le diagnostic, les instructions d’installation et les contrôles GitHub / Calendrier sur Mac.
