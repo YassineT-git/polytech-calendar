@@ -1,5 +1,9 @@
 # Polytech Calendar — APP3
 
+> **Synchronisation personnelle privée sur Mac et iPhone :** voir [la version locale iCloud](macos/README.md).
+> Elle utilise l’EDT personnel Polyflex et garde les identifiants dans le trousseau du Mac.
+> Le service public décrit ci-dessous reste le service collectif historique PoPsEDT.
+
 Génère automatiquement des abonnements ICS pour les APP3 de Polytech Paris-Saclay à partir des données PoPsEDT.
 
 ## Profils générés
