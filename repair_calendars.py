@@ -7,7 +7,9 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from generate_ics import PARIS, is_course_for_profile, is_enterprise_week
+from generate_ics import (PARIS, OFFICIAL_SCHEDULE, build_calendar,
+                          is_course_for_profile, is_enterprise_week,
+                          official_enterprise_events)
 
 
 def properties(block):
@@ -35,13 +37,17 @@ def repair_calendar(text, specialty, td_group):
         # Un calendrier explicitement vide est valide.
         if "BEGIN:VEVENT" in text:
             raise ValueError("Événement ICS incomplet.")
-        return text, {"school_removed": 0, "enterprise_removed": 0}
+        official = official_enterprise_events(specialty, td_group, [])
+        return (build_calendar(official, specialty, td_group) if official else text), {
+            "school_removed": 0, "enterprise_removed": 0,
+            "official_enterprise_added": len(official)}
     header = text[:text.index("BEGIN:VEVENT")]
     footer = text[position:]
     if footer.strip() != "END:VCALENDAR":
         raise ValueError("Fin de calendrier inattendue ; réparation annulée.")
 
     school = []
+    school_events = []
     enterprise = []
     stats = {"school_removed": 0, "enterprise_removed": 0}
     for block, fields in records:
@@ -56,17 +62,25 @@ def repair_calendar(text, specialty, td_group):
                        if line.startswith("Groupe : ")), "")
         if is_course_for_profile({"groups": groups}, specialty, td_group):
             school.append((block, monday))
+            end = datetime.strptime(fields["DTEND"], "%Y%m%dT%H%M%SZ").replace(
+                tzinfo=timezone.utc).astimezone(PARIS)
+            school_events.append({"kind": "school", "start": start, "end": end})
         else:
             stats["school_removed"] += 1
 
     school_weeks = {monday for _, monday in school}
     kept = {block for block, _ in school}
     for block, start, monday in enterprise:
-        if monday not in school_weeks and is_enterprise_week(start, []):
+        if (specialty != OFFICIAL_SCHEDULE["profile"] and
+                monday not in school_weeks and is_enterprise_week(start, [])):
             kept.add(block)
         else:
             stats["enterprise_removed"] += 1
-    return header + "".join(block for block, _ in records if block in kept) + footer, stats
+    official = official_enterprise_events(specialty, td_group, school_events)
+    generated = build_calendar(official, specialty, td_group)
+    official_blocks = re.findall(r"BEGIN:VEVENT\r?\n.*?END:VEVENT\r?\n", generated, re.S)
+    stats["official_enterprise_added"] = len(official_blocks)
+    return header + "".join(block for block, _ in records if block in kept) + "".join(official_blocks) + footer, stats
 
 
 def repair_existing(root=Path("docs")):

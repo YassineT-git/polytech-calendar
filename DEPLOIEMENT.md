@@ -1,25 +1,38 @@
-# Correction des conflits — 20 octobre 2026
+# Correction publiée — 20 octobre 2026
 
-## Cause et changements
+## Problèmes corrigés
 
-Le seuil de 8 h créait une semaine entreprise malgré des cours. Une exception forcée au 21 octobre ajoutait également l'entreprise pendant une semaine école. L'ancien filtre de spécialité ignorait `APP3 PHOT TP`, d'où des TP de photonique dans INFO, ELEC et MATE.
+Le seuil de 8 h et l'ancienne exception du 21 octobre créaient des plages entreprise pendant les cours. Le filtre de spécialité ignorait les suffixes ADE comme « APP3 PHOT TP », d'où des TP de photonique dans INFO, ELEC et MATE.
 
-La nouvelle règle donne la priorité à tous les cours et n'ajoute l'entreprise que pour une semaine explicitement confirmée, sans cours. Aucun calendrier officiel d'alternance n'a encore été fourni : la liste entreprise est vide. Les anciens événements automatiques ont donc été retirés des 12 profils et du lien historique. Les cours du bon profil et leurs UID sont conservés ; seuls 4 événements de photonique par profil INFO/ELEC/MATE sont exclus.
+Le générateur reconnaît désormais les spécialités avec suffixes et respecte les couples spécialité/groupe. Les cours et leurs UID sont conservés. L'entreprise n'est plus déduite du nombre d'heures de cours.
+
+## Calendrier officiel INFO Groupe B
+
+Le PDF original `PPS_ING_PPS_IIM_catalogue_26_27.pdf`, retrouvé dans Téléchargements, a été rendu et inspecté à la page 7. Les rectangles colorés de la colonne année 1 ont été extraits avec leurs dates dans `data/alternance-info-2026-2027.json`. Son empreinte SHA256 est conservée. Les dates s'appliquent uniquement à INFO (IIM APP3), groupes A/B/C.
+
+La transcription collée était erronée : les semaines du 14 septembre, du 12 octobre et du 19 octobre sont à l'école (cases vertes), pas en entreprise. La note des soutenances de première année, du 14 au 18 juin à l'école, est prioritaire sur les cellules jaunes du tableau pour ces dates.
+
+Les jours entreprise sont uniquement les jours ouvrés jaunes hors jours fériés. Une fermeture de l'école n'est pas un congé personnel en entreprise. Les congés individuels restent à renseigner séparément. Les cours et réunions prennent la priorité sur leur créneau : l'entreprise peut être scindée sur un jour mixte, sans jamais chevaucher un événement école.
+
+Les cours de la dernière collecte sont conservés à l'identique : 385 événements pour INFO Groupe B. La réparation rétablit 179 créneaux entreprise officiels, sans aucun chevauchement avec ces cours. Il ne s'agit pas d'une nouvelle récupération des cours depuis PoPsEDT.
 
 ## Publication
 
-Configurer Settings → Pages → Source sur GitHub Actions. Le workflow « Publier les calendriers existants » publie les corrections déjà commitées dans docs, indépendamment d'une nouvelle collecte. Le workflow « Mise à jour EDT Polytech APP3 » reste responsable de la collecte, de ses erreurs et de sa publication lorsqu'elle réussit.
+La source Pages est GitHub Actions. Le workflow « Publier les calendriers existants » publie les corrections commitées dans docs, indépendamment de PoPsEDT. « Mise à jour EDT Polytech APP3 » reste responsable de la collecte et signale une panne du fournisseur. Le 20 octobre, la liste des semaines répond, mais la semaine courante renvoie encore HTTP 502.
 
-Le 20 octobre, la liste des semaines est accessible mais la semaine courante renvoie encore HTTP 502. Les nouveaux tests et le nettoyage ne rétablissent pas le serveur PoPsEDT. Les cours conservés peuvent donc être anciens. Les erreurs 5xx, y compris Cloudflare 530, sont désormais réessayées.
+Les derniers fichiers restent disponibles même si la collecte échoue. Une publication réussie ne signifie donc pas que les cours ont été actualisés depuis ADE/PoPsEDT.
 
-## Validation
+## Validation sur Mac
+
+Actualiser l'abonnement existant via Présentation → Actualiser les calendriers. Ne pas créer un abonnement en double. L'URL INFO Groupe B et l'ancien `/edt.ics` sont conservés.
+
+Vérifier la semaine du 19 octobre : cours, sans blocs entreprise. Vérifier le 1er octobre : entreprise le matin, réunion à l'école l'après-midi. Pour les groupes d'anglais et de TP numériques, il faut connaître les groupes exacts : ils ne sont pas déduits des groupes A/B/C.
+
+## Maintenance
 
 ```sh
 python3 -m unittest discover -s tests -v
+python3 repair_calendars.py
 ```
 
-Après publication, actualiser l'abonnement Calendrier existant ; il est inutile d'ajouter un second abonnement. Vérifier que les blocs Entreprise ont disparu et que les cours sont toujours présents. INFO ne doit plus afficher les TP « Optique instrumentale » réservés à PHOT.
-
-Quand PoPsEDT répond à nouveau, lancer manuellement « Mise à jour EDT Polytech APP3 ». Contrôler un cours récent avec l'EDT officiel ; une publication réussie des fichiers existants ne prouve pas la fraîcheur des cours.
-
-Pour rétablir l'affichage Entreprise, renseigner FORCED_ENTERPRISE_DATES à partir du calendrier officiel. Les semaines comportant des cours resteront prioritaires. Pour les cours d'anglais et les sous-groupes de TP numériques, il faut connaître les groupes exacts de l'étudiant ; ils ne sont pas déduits des groupes A/B/C.
+Le nettoyage est idempotent et conserve les cours et UID du bon profil. L'extraction PDF est reproductible par `tools/extract_alternance_pdf.py` avec pdfplumber, mais nécessite un contrôle visuel pour toute nouvelle édition.

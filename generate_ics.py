@@ -17,6 +17,9 @@ PARIS = ZoneInfo("Europe/Paris")
 HTTP_ATTEMPTS = 3
 HTTP_TIMEOUT = 30
 MAX_CONSECUTIVE_FAILURES = 3
+OFFICIAL_SCHEDULE = json.loads(
+    (Path(__file__).resolve().parent / "data/alternance-info-2026-2027.json").read_text(encoding="utf-8")
+)
 
 # -----------------------------------------------------------------------------
 # Profils APP3 générés
@@ -276,6 +279,43 @@ def enterprise_events_for_week(week_id, week_start, specialty, td_group):
     return events
 
 
+def official_enterprise_events(specialty, td_group, school_events):
+    """Dates IIM année 1 vérifiées dans le PDF ; jamais de conflit avec un cours.
+
+    Une exception à l'école (réunion, soutenance) retire seulement son créneau
+    de la journée entreprise, sans effacer le cours ni les autres journées.
+    """
+    if specialty != OFFICIAL_SCHEDULE["profile"]:
+        return []
+    result = []
+    for value in OFFICIAL_SCHEDULE["enterprise_days"]:
+        current = date.fromisoformat(value)
+        monday = current - timedelta(days=current.weekday())
+        if week_contains_any(monday, FORCED_SCHOOL_DATES):
+            continue
+        start = datetime.combine(current, ENTERPRISE_START, tzinfo=PARIS)
+        end = datetime.combine(current, ENTERPRISE_END, tzinfo=PARIS)
+        available = [(start, end)]
+        for school in school_events:
+            remaining = []
+            for left, right in available:
+                if school["end"] <= left or school["start"] >= right:
+                    remaining.append((left, right))
+                else:
+                    if left < school["start"]:
+                        remaining.append((left, school["start"]))
+                    if school["end"] < right:
+                        remaining.append((school["end"], right))
+            available = remaining
+        week_start = datetime.combine(monday, time(), tzinfo=PARIS)
+        template = enterprise_events_for_week(
+            f"official-{monday.isoformat()}", week_start, specialty, td_group
+        )[current.weekday()]
+        for left, right in available:
+            result.append({**template, "start": left, "end": right})
+    return result
+
+
 # -----------------------------------------------------------------------------
 # ICS
 # -----------------------------------------------------------------------------
@@ -494,7 +534,7 @@ def build_profile_events(week_payloads, specialty, td_group):
 
         result.extend(school_events)
 
-        if is_enterprise_week(week_start, school_events):
+        if specialty != OFFICIAL_SCHEDULE["profile"] and is_enterprise_week(week_start, school_events):
             enterprise_weeks += 1
             result.extend(
                 enterprise_events_for_week(
@@ -505,6 +545,9 @@ def build_profile_events(week_payloads, specialty, td_group):
                 )
             )
 
+    official_events = official_enterprise_events(specialty, td_group, result)
+    result.extend(official_events)
+    enterprise_weeks += len({week_monday(event["start"]) for event in official_events})
     return result, enterprise_weeks
 
 

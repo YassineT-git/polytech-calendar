@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - "generate_ics.py"
+      - "data/**"
+      - "repair_calendars.py"
       - "tests/**"
       - "docs/index.html"
       - ".github/workflows/update.yml"
