@@ -2,3 +2,11 @@
 __MACOSX/
 *.pyc
 __pycache__/
+.env
+.env.*
+!.env.example
+*.cookies
+
+# Données du compte personnel : elles restent exclusivement sur le Mac.
+docs/personal*
+data/polyflex-state.json*

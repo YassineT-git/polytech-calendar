@@ -1,5 +1,9 @@
 # Polytech Calendar — APP3
 
+> **Synchronisation personnelle privée sur Mac et iPhone :** voir [la version locale iCloud](macos/README.md).
+> Elle utilise l’EDT personnel Polyflex et garde les identifiants dans le trousseau du Mac.
+> Le service public décrit ci-dessous reste le service collectif historique PoPsEDT.
+
 Génère automatiquement des abonnements ICS pour les APP3 de Polytech Paris-Saclay à partir des données PoPsEDT.
 
 ## Profils générés
@@ -54,13 +58,12 @@ Les coordonnées de l'outil sont propres à cette édition. Ne pas l'utiliser po
 
 `docs/edt.ics` est conservé et reste un alias du calendrier **INFO Groupe B** afin de ne pas casser les abonnements déjà installés.
 
-## Mise à jour automatique
+## Ancienne automatisation publique (désactivée)
 
 Le workflow `.github/workflows/update.yml` :
 
-- tourne toutes les 30 minutes ;
+- n’est plus planifié automatiquement ;
 - peut être lancé manuellement depuis l'onglet **Actions** ;
-- se lance aussi après une modification du générateur ou de la page d'accueil ;
 - vérifie le générateur avec les tests hors réseau ;
 - ne commit que si le contenu des calendriers a réellement changé ;
 - publie explicitement `docs/` sur GitHub Pages après une génération réussie.

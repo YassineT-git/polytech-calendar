@@ -339,6 +339,8 @@ def format_utc(dt):
 
 
 def stable_uid(event, specialty, td_group):
+    if event.get("uid"):
+        return event["uid"]
     course = event["course"]
     source = "|".join(
         [
@@ -384,10 +386,10 @@ def add_ics_line(lines, line):
     lines.extend(fold_ics_line(line))
 
 
-def build_calendar(profile_events, specialty, td_group):
+def build_calendar(profile_events, specialty, td_group, calendar_name=None):
     specialty_label = SPECIALTIES[specialty]
     group_label = TD_GROUPS[td_group]
-    calendar_name = f"Polytech APP3 {specialty} - {group_label}"
+    calendar_name = calendar_name or f"Polytech APP3 {specialty} - {group_label}"
 
     lines = []
     for line in [
@@ -426,7 +428,12 @@ def build_calendar(profile_events, specialty, td_group):
 
         # DTSTAMP stable : le fichier ne change pas toutes les 30 minutes si
         # l'emploi du temps n'a lui-même pas changé.
-        dtstamp = event["start"]
+        dtstamp = event.get("dtstamp", event["start"])
+
+        revision = []
+        if "last_modified" in event:
+            revision = [f"LAST-MODIFIED:{format_utc(event['last_modified'])}",
+                        f"SEQUENCE:{event['sequence']}"]
 
         for line in [
             "BEGIN:VEVENT",
@@ -437,6 +444,7 @@ def build_calendar(profile_events, specialty, td_group):
             f"SUMMARY:{escape_ics(name)}",
             f"LOCATION:{escape_ics(room)}",
             f"DESCRIPTION:{escape_ics(description)}",
+            *revision,
             "STATUS:CONFIRMED",
             "TRANSP:OPAQUE",
             "END:VEVENT",
