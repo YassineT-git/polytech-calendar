@@ -58,13 +58,12 @@ Les coordonnées de l'outil sont propres à cette édition. Ne pas l'utiliser po
 
 `docs/edt.ics` est conservé et reste un alias du calendrier **INFO Groupe B** afin de ne pas casser les abonnements déjà installés.
 
-## Mise à jour automatique
+## Ancienne automatisation publique (désactivée)
 
 Le workflow `.github/workflows/update.yml` :
 
-- tourne toutes les 30 minutes ;
+- n’est plus planifié automatiquement ;
 - peut être lancé manuellement depuis l'onglet **Actions** ;
-- se lance aussi après une modification du générateur ou de la page d'accueil ;
 - vérifie le générateur avec les tests hors réseau ;
 - ne commit que si le contenu des calendriers a réellement changé ;
 - publie explicitement `docs/` sur GitHub Pages après une génération réussie.

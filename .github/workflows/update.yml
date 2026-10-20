@@ -1,18 +1,7 @@
-name: Mise à jour EDT Polytech APP3
+name: Ancienne collecte collective PoPsEDT (manuelle)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/30 * * * *"
-  push:
-    branches: [main]
-    paths:
-      - "generate_ics.py"
-      - "data/**"
-      - "repair_calendars.py"
-      - "tests/**"
-      - "docs/index.html"
-      - ".github/workflows/update.yml"
 
 permissions:
   contents: read
