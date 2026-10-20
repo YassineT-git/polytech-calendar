@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import shutil
 import sys
 import time as time_module
@@ -34,19 +35,14 @@ TD_GROUPS = {
     "GrC": "Groupe C",
 }
 
-# Une semaine est considérée comme « entreprise » si le profil a au plus ce
-# nombre d'heures d'enseignement dans l'EDT. Les éventuels petits événements
-# Polytech restent affichés en plus des plages Entreprise.
-ENTERPRISE_MAX_SCHOOL_HOURS = 8.0
+# Une absence de cours ne prouve pas une semaine entreprise (vacances, EDT
+# non publié). Seules les semaines explicitement confirmées sont utilisées.
 ENTERPRISE_START = time(9, 0)
 ENTERPRISE_END = time(17, 30)
 
-# Une date suffit : toute la semaine (lundi -> dimanche) qui la contient sera
-# forcée en semaine entreprise, même si l'EDT contient quelques événements.
-# Ici, cela force la semaine contenant le 21 octobre 2026.
-FORCED_ENTERPRISE_DATES = {
-    date(2026, 10, 21),
-}
+# Ajouter une date d'une semaine entreprise confirmée par le calendrier
+# d'alternance. Les cours gardent la priorité, même pour ces semaines.
+FORCED_ENTERPRISE_DATES = set()
 
 # Permet de corriger exceptionnellement une détection automatique dans l'autre
 # sens. Ajoute simplement une date appartenant à la semaine à forcer en école.
@@ -57,73 +53,12 @@ COMMON_LABELS = {
     "APP3 concernés",
 }
 
-SPECIALTY_ADE_LABELS = {}
-for specialty in SPECIALTIES:
-    labels = {
-        f"APP3 {specialty}",
-        f"APP3 & FC1 {specialty}",
-        f"FC1 {specialty}",
-    }
-    for group in ("GrA", "GrB", "GrC", "Gr1", "Gr2"):
-        labels.add(f"APP3 {specialty} {group}")
-        labels.add(f"APP3 & FC1 {specialty} {group}")
-    SPECIALTY_ADE_LABELS[specialty] = labels
-
-GROUP_ADE_LABELS = {
-    "GrA": {
-        "APP3 GrA",
-        "APP3 & FC1 GrA",
-        "APP3 ELEC GrA",
-        "APP3 INFO GrA",
-        "APP3 MATE GrA",
-        "APP3 PHOT GrA",
-        "APP3 & FC1 ELEC GrA",
-        "APP3 & FC1 INFO GrA",
-        "APP3 & FC1 MATE GrA",
-        "APP3 & FC1 PHOT GrA",
-    },
-    "GrB": {
-        "APP3 GrB",
-        "APP3 & FC1 GrB",
-        "APP3 ELEC GrB",
-        "APP3 INFO GrB",
-        "APP3 MATE GrB",
-        "APP3 PHOT GrB",
-        "APP3 & FC1 ELEC GrB",
-        "APP3 & FC1 INFO GrB",
-        "APP3 & FC1 MATE GrB",
-        "APP3 & FC1 PHOT GrB",
-    },
-    "GrC": {
-        "APP3 GrC",
-        "APP3 & FC1 GrC",
-        "APP3 ELEC GrC",
-        "APP3 INFO GrC",
-        "APP3 MATE GrC",
-        "APP3 PHOT GrC",
-        "APP3 & FC1 ELEC GrC",
-        "APP3 & FC1 INFO GrC",
-        "APP3 & FC1 MATE GrC",
-        "APP3 & FC1 PHOT GrC",
-    },
-}
-
 
 def normalize(text):
     return " ".join(str(text).strip().split()).lower()
 
 
 COMMON_LABELS_N = {normalize(value) for value in COMMON_LABELS}
-SPECIALTY_ADE_LABELS_N = {
-    key: {normalize(value) for value in values}
-    for key, values in SPECIALTY_ADE_LABELS.items()
-}
-GROUP_ADE_LABELS_N = {
-    key: {normalize(value) for value in values}
-    for key, values in GROUP_ADE_LABELS.items()
-}
-ALL_SPECIALTY_LABELS_N = set().union(*SPECIALTY_ADE_LABELS_N.values())
-ALL_GROUP_LABELS_N = set().union(*GROUP_ADE_LABELS_N.values())
 
 
 # -----------------------------------------------------------------------------
@@ -142,7 +77,7 @@ def get_json(url):
                 return json.loads(response.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
             retryable = not isinstance(error, urllib.error.HTTPError) or (
-                error.code in {408, 429, 500, 502, 503, 504}
+                error.code in {408, 429} or 500 <= error.code <= 599
             )
             if not retryable or attempt == HTTP_ATTEMPTS:
                 raise RuntimeError(
@@ -176,7 +111,7 @@ def is_relevant_app3_label(label):
 
 
 def is_course_for_profile(course, specialty, td_group):
-    """Reproduit la logique utile des filtres APP3 de PoPsEDT."""
+    """Filtre aussi les suffixes ADE (TP, TD...) sans croiser les profils."""
     labels = split_groups(course.get("groups", ""))
 
     # PoPsEDT conserve les événements sans étiquette de groupe.
@@ -194,22 +129,23 @@ def is_course_for_profile(course, specialty, td_group):
     if not relevant and not has_common:
         return False
 
-    # Si l'événement précise une spécialité, elle doit correspondre.
-    specialty_labels = [
-        label for label in relevant if label in ALL_SPECIALTY_LABELS_N
-    ]
-    if specialty_labels and not any(
-        label in SPECIALTY_ADE_LABELS_N[specialty]
-        for label in specialty_labels
-    ):
+    def specialties(label):
+        return set(re.findall(r"\b(elec|info|mate|phot)\b", label))
+
+    def groups(label):
+        return set(re.findall(r"\bgr\s*([abc])\b", label))
+
+    specialty_labels = [label for label in relevant if specialties(label)]
+    matching = [label for label in specialty_labels
+                if specialty.lower() in specialties(label)]
+    if specialty_labels and not matching:
         return False
 
-    # Si l'événement précise un groupe APP3, il doit correspondre.
-    group_labels = [label for label in relevant if label in ALL_GROUP_LABELS_N]
-    if group_labels and not any(
-        label in GROUP_ADE_LABELS_N[td_group]
-        for label in group_labels
-    ):
+    # Les groupes d'une autre spécialité ne doivent pas rendre le cours
+    # compatible (APP3 INFO GrA + APP3 ELEC GrB n'est pas INFO GrB).
+    group_labels = matching + [label for label in relevant if not specialties(label)]
+    specified_groups = set().union(*(groups(label) for label in group_labels))
+    if specified_groups and td_group[-1].lower() not in specified_groups:
         return False
 
     # Les groupes d'anglais restent inclus tant qu'un futur filtre anglais
@@ -236,7 +172,8 @@ def course_to_event(week_id, week_start, course):
     start = course.get("start")
     end = course.get("end")
 
-    if not day_index or not start or not end:
+    if (isinstance(day_index, bool) or not isinstance(day_index, int)
+            or not 1 <= day_index <= 7 or not start or not end):
         return None
 
     try:
@@ -304,10 +241,11 @@ def is_enterprise_week(week_start, school_events):
 
     if week_contains_any(monday, FORCED_SCHOOL_DATES):
         return False
-    if week_contains_any(monday, FORCED_ENTERPRISE_DATES):
-        return True
-
-    return union_duration_hours(school_events) <= ENTERPRISE_MAX_SCHOOL_HOURS
+    # Une semaine école, même partielle, ne devient jamais une semaine
+    # entreprise. Ne pas effacer les cours pour faire disparaître un conflit.
+    if school_events:
+        return False
+    return week_contains_any(monday, FORCED_ENTERPRISE_DATES)
 
 
 def enterprise_events_for_week(week_id, week_start, specialty, td_group):

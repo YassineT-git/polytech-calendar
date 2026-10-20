@@ -12,31 +12,31 @@ La page GitHub Pages `docs/index.html` permet à chaque étudiant de choisir son
 
 ## Semaines entreprise
 
-Par défaut, une semaine contenant **au maximum 8 h de cours** pour un profil est considérée comme semaine entreprise. Des événements `🏢 Entreprise` sont ajoutés du lundi au vendredi de **09:00 à 17:30**, sans supprimer les éventuels petits événements Polytech de cette semaine.
+Une semaine vide ou contenant peu de cours n'est **pas** automatiquement une semaine entreprise : il peut s'agir de vacances ou d'un EDT non encore publié.
 
-Les réglages sont en haut de `generate_ics.py` :
+Les cours ont toujours la priorité. Dès qu'un cours du profil figure dans une semaine, aucun événement entreprise n'est ajouté dans cette semaine, même si elle avait été configurée comme entreprise.
 
-```python
-ENTERPRISE_MAX_SCHOOL_HOURS = 8.0
-ENTERPRISE_START = time(9, 0)
-ENTERPRISE_END = time(17, 30)
-```
-
-Pour forcer une semaine en entreprise, ajoute simplement une date située dans cette semaine :
+Pour ajouter une semaine entreprise confirmée par le calendrier d'alternance, ajouter une date de cette semaine dans `generate_ics.py` :
 
 ```python
 FORCED_ENTERPRISE_DATES = {
-    date(2026, 10, 21),
+    # date(2026, 11, 2),  # Exemple uniquement : vérifier le calendrier officiel.
 }
 ```
 
-Pour forcer une semaine en école malgré la détection automatique :
+La liste est vide par défaut, en attendant les dates officielles. L'ancienne exception du 21 octobre 2026 a été retirée : elle forçait l'entreprise pendant une semaine contenant des cours. Les créneaux configurés restent du lundi au vendredi, de 09:00 à 17:30.
 
-```python
-FORCED_SCHOOL_DATES = {
-    date(2026, 11, 9),
-}
+Les spécialités sont reconnues même avec un suffixe ADE (`APP3 PHOT TP`, par exemple). Les couples spécialité/groupe sont filtrés ensemble : INFO GrA + ELEC GrB n'autorise pas INFO GrB. Les groupes numériques de TP et les groupes d'anglais ne sont pas déduits des groupes A/B/C : ils restent inclus tant que le profil ne permet pas de les distinguer.
+
+## Réparer les calendriers existants pendant une panne
+
+```sh
+python3 repair_calendars.py
 ```
+
+Cette opération conserve à l'identique les événements et UID des cours du bon profil, retire les cours d'autres spécialités et les événements entreprise non confirmés ou incompatibles avec une semaine école. Elle ne récupère **aucun nouveau cours** et ne prétend pas actualiser l'EDT. L'alias INFO Groupe B est conservé.
+
+Le workflow **Publier les calendriers existants** publie les corrections de `docs/` sur un push humain/authentifié ou sur déclenchement manuel, sans dépendre de PoPsEDT. Le workflow de collecte continue, lui, à signaler une panne du fournisseur et ne publie jamais une collecte partielle. Les deux publications sont sérialisées.
 
 ## Ancien lien
 
